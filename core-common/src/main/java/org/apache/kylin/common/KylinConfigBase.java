@@ -1545,6 +1545,11 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.realization-filter", null);
     }
 
+    public String getSQLResponseSignatureClass() {
+        return this.getOptional("kylin.query.signature-class",
+                "org.apache.kylin.rest.signature.RealizationSetCalculator");
+    }
+
     // ============================================================================
     // SERVER
     // ============================================================================
