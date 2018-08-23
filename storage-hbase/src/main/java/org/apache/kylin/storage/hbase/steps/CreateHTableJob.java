@@ -333,9 +333,10 @@ public class CreateHTableJob extends AbstractHadoopJob {
 
             double accumulatedSize = 0;
             int j = 0;
+            final int k = 3;    //split ratio
             for (Long cuboid : allCuboids) {
 
-                if (accumulatedSize >= hfileSizeMB) {
+                if (accumulatedSize*k >= hfileSizeMB) {
                     logger.info(String.format("Region %d's hfile %d size is %.2f mb", i, j, accumulatedSize));
                     byte[] split = new byte[RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN];
                     BytesUtil.writeUnsigned(i, split, 0, RowConstants.ROWKEY_SHARDID_LEN);
@@ -359,7 +360,9 @@ public class CreateHTableJob extends AbstractHadoopJob {
             hfilePartitionWriter.append(
                     new RowKeyWritable(KeyValue.createFirstOnRow(splits.get(i)).createKeyOnly(false).getKey()),
                     NullWritable.get());
+            logger.info(" @@@@ split key: " + splits.get(i).toString());
         }
+
         hfilePartitionWriter.close();
     }
 
