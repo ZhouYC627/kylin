@@ -385,7 +385,7 @@ public class CreateHTableJob extends AbstractHadoopJob {
                 SequenceFile.Writer.file(hfilePartitionIndices), SequenceFile.Writer.keyClass(IntWritable.class),
                 SequenceFile.Writer.valueClass(NullWritable.class));
         for (int i = 0; i < partitionIndices.size(); i++) {
-            partitionIndicesWriter.append(new IntWritable(partitionIndices.get(i)), SequenceFile.Writer.valueClass(NullWritable.class));
+            partitionIndicesWriter.append(new IntWritable(partitionIndices.get(i)), NullWritable.get());
             logger.info(" @@@@ indice: " + partitionIndices.get(i));
         }
 
