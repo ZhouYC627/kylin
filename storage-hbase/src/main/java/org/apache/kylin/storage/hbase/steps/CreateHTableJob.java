@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat2;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.mapreduce.Job;
@@ -315,14 +316,17 @@ public class CreateHTableJob extends AbstractHadoopJob {
         }
         logger.info("hfileSizeMB:" + hfileSizeMB);
         final Path hfilePartitionFile = new Path(outputFolder, "part-r-00000_hfile");
+        final Path hfilePartitionIndices = new Path(outputFolder, "part-r-00000_indices");
         short regionCount = (short) innerRegionSplits.size();
 
         List<byte[]> splits = Lists.newArrayList();
+        List<Integer> partitionIndices = Lists.newArrayList();
         for (int i = 0; i < regionCount; i++) {
             if (i > 0) {
                 // skip 0
                 byte[] split = new byte[RowConstants.ROWKEY_SHARDID_LEN];
                 BytesUtil.writeUnsigned(i, split, 0, RowConstants.ROWKEY_SHARDID_LEN);
+                partitionIndices.add(splits.size());
                 splits.add(split); // split by region;
             }
 
@@ -332,21 +336,33 @@ public class CreateHTableJob extends AbstractHadoopJob {
             Collections.sort(allCuboids);
 
             double accumulatedSize = 0;
+            double miniAccumulatedSize = 0;
             int j = 0;
-            final int k = 3;    //split ratio
+            final int k = 10;    //split ratio
             for (Long cuboid : allCuboids) {
 
-                if (accumulatedSize*k >= hfileSizeMB) {
+                if (accumulatedSize >= hfileSizeMB) {
                     logger.info(String.format("Region %d's hfile %d size is %.2f mb", i, j, accumulatedSize));
                     byte[] split = new byte[RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN];
                     BytesUtil.writeUnsigned(i, split, 0, RowConstants.ROWKEY_SHARDID_LEN);
                     System.arraycopy(Bytes.toBytes(cuboid), 0, split, RowConstants.ROWKEY_SHARDID_LEN,
                             RowConstants.ROWKEY_CUBOIDID_LEN);
+                    partitionIndices.add(splits.size());
                     splits.add(split);
                     accumulatedSize = 0;
+                    miniAccumulatedSize = 0;
                     j++;
                 }
+                if (miniAccumulatedSize >= hfileSizeMB/k) {
+                    byte[] split = new byte[RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN];
+                    BytesUtil.writeUnsigned(i, split, 0, RowConstants.ROWKEY_SHARDID_LEN);
+                    System.arraycopy(Bytes.toBytes(cuboid), 0, split, RowConstants.ROWKEY_SHARDID_LEN,
+                            RowConstants.ROWKEY_CUBOIDID_LEN);
+                    splits.add(split);
+                    miniAccumulatedSize = 0;
+                }
                 accumulatedSize += cuboidSize.get(cuboid);
+                miniAccumulatedSize += cuboidSize.get(cuboid);
             }
 
         }
@@ -364,6 +380,15 @@ public class CreateHTableJob extends AbstractHadoopJob {
         }
 
         hfilePartitionWriter.close();
+
+        SequenceFile.Writer partitionIndicesWriter = SequenceFile.createWriter(hbaseConf,
+                SequenceFile.Writer.file(hfilePartitionIndices), SequenceFile.Writer.keyClass(IntWritable.class),
+                SequenceFile.Writer.valueClass(NullWritable.class));
+        for (int i = 0; i < partitionIndices.size(); i++) {
+            partitionIndicesWriter.append(new IntWritable(partitionIndices.get(i)), SequenceFile.Writer.valueClass(NullWritable.class));
+            logger.info(" @@@@ indice: " + partitionIndices.get(i));
+        }
+
     }
 
     public static void main(String[] args) throws Exception {

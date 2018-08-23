@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
@@ -168,6 +169,18 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
                 key = new RowKeyWritable(); // important, new an object!
             }
         }
+        List<IntWritable> indices = new ArrayList<>();
+        try (SequenceFile.Reader reader = new SequenceFile.Reader(fs,
+                new Path(partitionFilePath.getParent().getParent(), "part-r-00000_indices"), sc.hadoopConfiguration())){
+            IntWritable key = new IntWritable();
+            Writable value = NullWritable.get();
+            while (reader.next(key, value)){
+                indices.add(key);
+                logger.info(" ------- indice");
+                key = new IntWritable();
+            }
+
+        }
 
         logger.info("There are " + keys.size() + " split keys, totally " + (keys.size() + 1) + " hfiles");
 
@@ -216,7 +229,7 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
         }
 
         hfilerdd.repartitionAndSortWithinPartitions(new HFilePartitioner(keys),
-                RowKeyWritable.RowKeyComparator.INSTANCE)
+                RowKeyWritable.RowKeyComparator.INSTANCE).coalesce(indices.size()+1, false)
                 .mapToPair(new PairFunction<Tuple2<RowKeyWritable, KeyValue>, ImmutableBytesWritable, KeyValue>() {
                     @Override
                     public Tuple2<ImmutableBytesWritable, KeyValue> call(
