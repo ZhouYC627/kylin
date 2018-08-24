@@ -389,6 +389,8 @@ public class CreateHTableJob extends AbstractHadoopJob {
             logger.info(" @@@@ indice: " + partitionIndices.get(i));
         }
 
+        partitionIndicesWriter.close();
+
     }
 
     public static void main(String[] args) throws Exception {
