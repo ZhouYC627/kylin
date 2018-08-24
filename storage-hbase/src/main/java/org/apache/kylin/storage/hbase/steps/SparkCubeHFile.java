@@ -229,7 +229,7 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
         }
 
         hfilerdd.repartitionAndSortWithinPartitions(new HFilePartitioner(keys),
-                RowKeyWritable.RowKeyComparator.INSTANCE).coalesce(indices.size()+1, false)
+                RowKeyWritable.RowKeyComparator.INSTANCE)
                 .mapToPair(new PairFunction<Tuple2<RowKeyWritable, KeyValue>, ImmutableBytesWritable, KeyValue>() {
                     @Override
                     public Tuple2<ImmutableBytesWritable, KeyValue> call(
@@ -237,7 +237,7 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
                         return new Tuple2<>(new ImmutableBytesWritable(rowKeyWritableKeyValueTuple2._2.getKey()),
                                 rowKeyWritableKeyValueTuple2._2);
                     }
-                }).saveAsNewAPIHadoopDataset(job.getConfiguration());
+                }).cache().coalesce(indices.size()+1, false).saveAsNewAPIHadoopDataset(job.getConfiguration());
 
         // output the data size to console, job engine will parse and save the metric
         // please note: this mechanism won't work when spark.submit.deployMode=cluster

@@ -338,7 +338,7 @@ public class CreateHTableJob extends AbstractHadoopJob {
             double accumulatedSize = 0;
             double miniAccumulatedSize = 0;
             int j = 0;
-            final int k = 10;    //split ratio
+            final int k = 4;    //split ratio
             for (Long cuboid : allCuboids) {
 
                 if (accumulatedSize >= hfileSizeMB) {
@@ -386,7 +386,7 @@ public class CreateHTableJob extends AbstractHadoopJob {
                 SequenceFile.Writer.valueClass(NullWritable.class));
         for (int i = 0; i < partitionIndices.size(); i++) {
             partitionIndicesWriter.append(new IntWritable(partitionIndices.get(i)), NullWritable.get());
-            logger.info(" @@@@ indice: " + partitionIndices.get(i));
+            logger.info(" @@@@ indice: " + partitionIndices.get(i).intValue());
         }
 
         partitionIndicesWriter.close();
