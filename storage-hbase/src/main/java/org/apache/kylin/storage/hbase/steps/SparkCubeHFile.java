@@ -171,7 +171,7 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
         }
         List<IntWritable> indices = new ArrayList<>();
         try (SequenceFile.Reader reader = new SequenceFile.Reader(fs,
-                new Path(partitionFilePath.getParent().getParent(), "part-r-00000_indices"), sc.hadoopConfiguration())){
+                new Path(partitionFilePath.getParent(), "part-r-00000_indices"), sc.hadoopConfiguration())){
             IntWritable key = new IntWritable();
             Writable value = NullWritable.get();
             while (reader.next(key, value)){
