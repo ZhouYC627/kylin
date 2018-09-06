@@ -25,6 +25,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,6 +40,7 @@ public class AdminServiceTest extends ServiceTestBase {
     private AdminService adminService;
 
     @Test
+    @Ignore
     public void testGetPublicConfig() throws IOException {
         //set ../examples/test_metadata/kylin.properties empty
         File file = FileUtils.getFile(LOCALMETA_TEMP_DATA + "kylin.properties");
