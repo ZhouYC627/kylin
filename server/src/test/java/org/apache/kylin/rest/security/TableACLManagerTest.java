@@ -25,7 +25,6 @@ import org.apache.kylin.metadata.acl.TableACL;
 import org.apache.kylin.metadata.acl.TableACLManager;
 import org.apache.kylin.rest.util.MultiNodeManagerTestBase;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -40,7 +39,6 @@ public class TableACLManagerTest extends MultiNodeManagerTestBase {
     }
 
     @Test
-    @Ignore
     public void test() throws Exception {
         final TableACLManager tableACLManagerA = new TableACLManager(configA);
         final TableACLManager tableACLManagerB = new TableACLManager(configB);
