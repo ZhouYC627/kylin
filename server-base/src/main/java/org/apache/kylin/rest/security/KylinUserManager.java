@@ -120,7 +120,6 @@ public class KylinUserManager {
             if (exist != null) {
                 user.setLastModified(exist.getLastModified());
             }
-            user.setUsername(user.getUsername().toUpperCase(Locale.ROOT));
             crud.save(user);
         } catch (IOException e) {
             throw new RuntimeException("Can not update user.", e);

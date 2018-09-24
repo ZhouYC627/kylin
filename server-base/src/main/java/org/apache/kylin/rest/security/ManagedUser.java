@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import com.google.common.base.Preconditions;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -115,7 +116,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
 
     @Override
     public String resourceName() {
-        return username;
+        return username.toUpperCase(Locale.ROOT);
     }
 
     public String getUsername() {
