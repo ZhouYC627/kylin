@@ -161,9 +161,10 @@ public class HDFSResourceStore extends ResourceStore {
             if (fs.getFileStatus(p).getLen() == 0) {
                 logger.warn("Zero length file: {0}", p.toString());
             }
-            FSDataInputStream in = fs.open(p);
-            long t = in.readLong();
-            return new RawResource(in, t);
+            try(FSDataInputStream in = fs.open(p)) {
+                long t = in.readLong();
+                return new RawResource(in, t);
+            }
         } else {
             return null;
         }

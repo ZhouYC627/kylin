@@ -69,37 +69,38 @@ public class RocksDBLookupTable implements ILookupTable {
 
     @Override
     public Iterator<String[]> iterator() {
-        final RocksIterator rocksIterator = rocksDB.newIterator();
-        rocksIterator.seekToFirst();
+        try(final RocksIterator rocksIterator = rocksDB.newIterator()) {
+            rocksIterator.seekToFirst();
 
-        return new Iterator<String[]>() {
-            int counter;
+            return new Iterator<String[]>() {
+                int counter;
 
-            @Override
-            public boolean hasNext() {
-                boolean valid = rocksIterator.isValid();
-                if (!valid) {
-                    rocksIterator.close();
+                @Override
+                public boolean hasNext() {
+                    boolean valid = rocksIterator.isValid();
+                    if (!valid) {
+                        rocksIterator.close();
+                    }
+                    return valid;
                 }
-                return valid;
-            }
 
-            @Override
-            public String[] next() {
-                counter++;
-                if (counter % 100000 == 0) {
-                    logger.info("scanned {} rows from rocksDB", counter);
+                @Override
+                public String[] next() {
+                    counter++;
+                    if (counter % 100000 == 0) {
+                        logger.info("scanned {} rows from rocksDB", counter);
+                    }
+                    String[] result = rowEncoder.decode(new KV(rocksIterator.key(), rocksIterator.value()));
+                    rocksIterator.next();
+                    return result;
                 }
-                String[] result = rowEncoder.decode(new KV(rocksIterator.key(), rocksIterator.value()));
-                rocksIterator.next();
-                return result;
-            }
 
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("not support operation");
-            }
-        };
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException("not support operation");
+                }
+            };
+        }
     }
 
     @Override
