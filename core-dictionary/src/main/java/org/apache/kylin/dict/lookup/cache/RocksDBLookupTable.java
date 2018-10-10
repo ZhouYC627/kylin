@@ -69,7 +69,7 @@ public class RocksDBLookupTable implements ILookupTable {
 
     @Override
     public Iterator<String[]> iterator() {
-        try(final RocksIterator rocksIterator = rocksDB.newIterator()) {
+        final RocksIterator rocksIterator = rocksDB.newIterator();
             rocksIterator.seekToFirst();
 
             return new Iterator<String[]>() {
@@ -100,7 +100,6 @@ public class RocksDBLookupTable implements ILookupTable {
                     throw new UnsupportedOperationException("not support operation");
                 }
             };
-        }
     }
 
     @Override
