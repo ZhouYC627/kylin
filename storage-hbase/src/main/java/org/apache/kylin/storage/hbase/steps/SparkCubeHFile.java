@@ -180,8 +180,10 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
 
             //HBase conf
             logger.info("Loading HBase configuration from:{}", hbaseConfFile);
-
-            try (FSDataInputStream confInput = fs.open(new Path(hbaseConfFile))) {
+            // Get FileSystem based on the path of hbaseConfFile
+            Path hbaseConfFilePath = new Path(hbaseConfFile);
+            final FileSystem hbaseConfFileFs = hbaseConfFilePath.getFileSystem(sc.hadoopConfiguration());
+            try (FSDataInputStream confInput = hbaseConfFileFs.open(hbaseConfFilePath)) {
                 Configuration hbaseJobConf = new Configuration();
                 hbaseJobConf.addResource(confInput);
                 hbaseJobConf.set("spark.hadoop.dfs.replication", "3"); // HFile, replication=3
@@ -189,7 +191,8 @@ public class SparkCubeHFile extends AbstractApplication implements Serializable 
 
                 FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-                JavaPairRDD<Text, Text> inputRDDs = SparkUtil.parseInputPath(inputPath, fs, sc, Text.class, Text.class);
+                // inputPath has the same FileSystem as hbaseConfFile when in HBase standalone mode
+                JavaPairRDD<Text, Text> inputRDDs = SparkUtil.parseInputPath(inputPath, hbaseConfFileFs, sc, Text.class, Text.class);
                 final JavaPairRDD<RowKeyWritable, KeyValue> hfilerdd;
                 if (quickPath) {
                     hfilerdd = inputRDDs.mapToPair(new PairFunction<Tuple2<Text, Text>, RowKeyWritable, KeyValue>() {
