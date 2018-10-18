@@ -1762,6 +1762,10 @@ abstract public class KylinConfigBase implements Serializable {
                 + getKylinMetricsSubjectSuffix();
     }
 
+    public Map<String, String> getKylinMetricsConf() {
+        return getPropertiesByPrefix("kylin.metrics.");
+    }
+
     // ============================================================================
     // tool
     // ============================================================================
