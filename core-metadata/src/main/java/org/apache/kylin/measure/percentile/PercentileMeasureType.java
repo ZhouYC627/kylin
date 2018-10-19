@@ -82,6 +82,11 @@ public class PercentileMeasureType extends MeasureType<PercentileCounter> {
                 }
                 return counter;
             }
+
+            @Override
+            public void reset() {
+                current = new PercentileCounter(dataType.getPrecision());
+            }
         };
     }
 
@@ -103,4 +108,6 @@ public class PercentileMeasureType extends MeasureType<PercentileCounter> {
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {
         return UDAF_MAP;
     }
+
+
 }
