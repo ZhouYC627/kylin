@@ -380,6 +380,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         }
 
         private void init() {
+            initialized = true;
             KylinConfig kConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(conf, metaUrl);
             KylinConfig.setAndUnsetThreadLocalConfig(kConfig);
             CubeInstance cubeInstance = CubeManager.getInstance(kConfig).getCube(cubeName);

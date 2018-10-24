@@ -280,6 +280,7 @@ public class SparkCubingByLayerParquet extends SparkCubingByLayer {
         }
 
         private void init() {
+            initialized = true;
             KylinConfig kConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(conf, metaUrl);
             KylinConfig.setAndUnsetThreadLocalConfig(kConfig);
             CubeInstance cubeInstance = CubeManager.getInstance(kConfig).getCube(cubeName);
@@ -290,7 +291,6 @@ public class SparkCubingByLayerParquet extends SparkCubingByLayer {
             factory = new SimpleGroupFactory(GroupWriteSupport.getSchema(conf.get()));
             measureCodec = new BufferedMeasureCodec(cubeDesc.getMeasures());
             serializer = new PercentileSerializer(DataType.getType("percentile(100)"));
-
         }
 
         @Override
