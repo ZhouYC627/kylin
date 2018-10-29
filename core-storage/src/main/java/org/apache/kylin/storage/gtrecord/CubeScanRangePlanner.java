@@ -207,6 +207,8 @@ public class CubeScanRangePlanner extends ScanRangePlannerBase {
             switch (filter.getOperator()) {
                 case EQ:
                     return colName + "=" + toStringValue(filter, serializer, buffer);
+                case NEQ:
+                    return colName + "!=" + toStringValue(filter, serializer, buffer);
                 case LT:
                     return colName + "<" + toStringValue(filter, serializer, buffer);
                 case GT:
@@ -215,6 +217,10 @@ public class CubeScanRangePlanner extends ScanRangePlannerBase {
                     return colName + ">=" + toStringValue(filter, serializer, buffer);
                 case LTE:
                     return colName + "<=" + toStringValue(filter, serializer, buffer);
+                case ISNULL:
+                    return colName + " is null";
+                case ISNOTNULL:
+                    return colName + " is not null";
                 case IN:
                     String result = colName + " in (";
 
@@ -230,6 +236,22 @@ public class CubeScanRangePlanner extends ScanRangePlannerBase {
                     }
                     result += ")";
                     return result;
+                case NOTIN:
+
+                    String result1 = colName + " not in (";
+
+                    for (Object value : filter.getValues()) {
+                        if (column.getType().isStringFamily()) {
+                            result1 += "'" + value + "'" + ",";
+                        } else {
+                            result1 += value + ",";
+                        }
+                    }
+                    if (result1.endsWith(",")) {
+                        result1 = result1.substring(0, result1.length() - 1);
+                    }
+                    result1 += ")";
+                    return result1;
                 default:
                     throw new IllegalStateException("operator not supported: " + filter.getOperator() + " in " + tupleFilter);
             }
