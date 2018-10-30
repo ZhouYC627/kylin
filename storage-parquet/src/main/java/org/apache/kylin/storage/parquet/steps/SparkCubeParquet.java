@@ -415,6 +415,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
                 synchronized (SparkCubeParquet.class) {
                     if (initialized == false) {
                         init();
+                        initialized = true;
                     }
                 }
             }
