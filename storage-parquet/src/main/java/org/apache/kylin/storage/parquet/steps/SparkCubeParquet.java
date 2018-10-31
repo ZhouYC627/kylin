@@ -201,7 +201,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("CuboidToPartitionMapping: {}", cuboidToPartitionMapping.toString());
 
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartitionAndSortWithinPartitions(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
+        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
 
         String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(hdfsBaseLocation, level);
 
@@ -396,7 +396,6 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         }
 
         private void init() {
-            initialized = true;
             KylinConfig kConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(conf, metaUrl);
             KylinConfig.setAndUnsetThreadLocalConfig(kConfig);
             CubeInstance cubeInstance = CubeManager.getInstance(kConfig).getCube(cubeName);
