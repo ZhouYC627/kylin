@@ -430,18 +430,15 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
             byte[] encodedBytes = tuple._2().getBytes();
             int[] valueLengths = measureCodec.getCodec().getPeekLength(ByteBuffer.wrap(encodedBytes));
-            logger.info("encodedBytesLengths size= ", encodedBytes.length);
-            logger.info("ValueLengths size= ", valueLengths.length);
+            logger.info("encodedBytesLengths size= {}", encodedBytes.length);
+            logger.info("ValueLengths size= {}", valueLengths.length);
 
             int valueOffset = 0;
-            long startTime = System.currentTimeMillis();
             for (int i = 0; i < valueLengths.length; ++i) {
                 MeasureDesc measureDesc = measureDescs.get(i);
                 parseMeaValue(group, measureDesc, encodedBytes, valueOffset, valueLengths[i]);
                 valueOffset += valueLengths[i];
             }
-            long endTime = System.currentTimeMillis();
-            logger.info("ParseMeasureValue time = ", endTime-startTime);
 
             return new Tuple2<>(null, group);
         }
