@@ -93,6 +93,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 
@@ -233,13 +234,16 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         @Override
         public int getPartition(Object key) {
             Text textKey = (Text)key;
-            return mapping.getPartitionForCuboidId(textKey.getBytes(), enableSharding);
+            long cuboidId = Bytes.toLong(textKey.getBytes(), RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
+
+            return mapping.getPartitionForCuboidId(cuboidId);
         }
     }
 
     public static class CuboidToPartitionMapping implements Serializable {
         private Map<Long, List<Integer>> cuboidPartitions;
         private int partitionNum;
+        private SecureRandom random = new SecureRandom();
 
         public CuboidToPartitionMapping(Map<Long, List<Integer>> cuboidPartitions) {
             this.cuboidPartitions = cuboidPartitions;
@@ -295,25 +299,9 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             throw new IllegalArgumentException("No cuboidId for partition id: " + partition);
         }
 
-        public int getPartitionForCuboidId(byte[] key, boolean enableSharding) {
-            long cuboidId = Bytes.toLong(key, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
-
+        public int getPartitionForCuboidId(long cuboidId) {
             List<Integer> partitions = cuboidPartitions.get(cuboidId);
-            if (enableSharding) {
-                short shardId = (short) BytesUtil.readShort(key, 0, RowConstants.ROWKEY_SHARDID_LEN);
-                return partitions.get(shardId % partitions.size());
-            } else {
-                return partitions.get(mod(key, 0, RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, partitions.size()));
-            }
-        }
-
-        private int mod(byte[] src, int start, int end, int total) {
-            int sum = Bytes.hashBytes(src, start, end - start);
-            int mod = sum % total;
-            if (mod < 0)
-                mod += total;
-
-            return mod;
+            return partitions.get(random.nextInt(partitions.size()));
         }
 
         public int getPartitionNumForCuboidId(long cuboidId) {
@@ -332,7 +320,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         private int estimateCuboidPartitionNum(long cuboidId, CubeStatsReader cubeStatsReader, KylinConfig kylinConfig) {
             double cuboidSize = cubeStatsReader.estimateCuboidSize(cuboidId);
             float rddCut = kylinConfig.getSparkRDDPartitionCutMB();
-            int partition = (int) (cuboidSize / rddCut);
+            int partition = (int) (cuboidSize / (rddCut * 20));
             partition = Math.max(kylinConfig.getSparkMinPartition(), partition);
             partition = Math.min(kylinConfig.getSparkMaxPartition(), partition);
             logger.info("cuboid:{}, est_size:{}, partitions:{}", cuboidId, cuboidSize, partition);
