@@ -171,7 +171,9 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             // Read from cuboid and save to parquet
             for (int level = 0; level <= totalLevels; level++) {
                 String cuboidPath = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(inputPath, level);
+                logger.info("Read layer: {} from {}", level, cuboidPath);
                 allRDDs[level] = SparkUtil.parseInputPath(cuboidPath, fs, sc, Text.class, Text.class);
+                logger.info("SaveToParquet... Level:{}", level);
                 saveToParquet(allRDDs[level], metaUrl, cubeName, cubeSegment, outputPath, level, job, envConfig);
             }
 
@@ -200,7 +202,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         final CuboidToPartitionMapping cuboidToPartitionMapping = new CuboidToPartitionMapping(cubeSeg, kylinConfig, level);
 
-        logger.info("CuboidToPartitionMapping: {}", cuboidToPartitionMapping.toString());
+        logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
         JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
 
@@ -211,6 +213,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         CustomParquetOutputFormat.setOutputPath(job, new Path(output));
         CustomParquetOutputFormat.setWriteSupportClass(job, GroupWriteSupport.class);
         CustomParquetOutputFormat.setCuboidToPartitionMapping(job, cuboidToPartitionMapping);
+
+        logger.info("TransferToGroupRDD: level{}", level);
 
         JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
 
@@ -274,6 +278,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             }
 
             this.partitionNum = position;
+            logger.info("PartitionNumber is {}", position);
         }
 
         public String serialize() throws JsonProcessingException {
@@ -425,13 +430,18 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
             byte[] encodedBytes = tuple._2().getBytes();
             int[] valueLengths = measureCodec.getCodec().getPeekLength(ByteBuffer.wrap(encodedBytes));
+            logger.info("encodedBytesLengths size= ", encodedBytes.length);
+            logger.info("ValueLengths size= ", valueLengths.length);
 
             int valueOffset = 0;
+            long startTime = System.currentTimeMillis();
             for (int i = 0; i < valueLengths.length; ++i) {
                 MeasureDesc measureDesc = measureDescs.get(i);
                 parseMeaValue(group, measureDesc, encodedBytes, valueOffset, valueLengths[i]);
                 valueOffset += valueLengths[i];
             }
+            long endTime = System.currentTimeMillis();
+            logger.info("ParseMeasureValue time = ", endTime-startTime);
 
             return new Tuple2<>(null, group);
         }
