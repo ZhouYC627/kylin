@@ -204,8 +204,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
-        //JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.partitionNum);
+        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
+        //JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.partitionNum);
 
         String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(hdfsBaseLocation, level);
 
@@ -429,7 +429,9 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
             count ++;
 
-            byte[] encodedBytes = tuple._2().getBytes();
+            int meaByteLen = tuple._2().getBytes().length;
+            byte[] encodedBytes = new byte[meaByteLen];
+            System.arraycopy(tuple._2().getBytes(), 0, encodedBytes, 0, meaByteLen);
             int[] valueLengths = measureCodec.getCodec().getPeekLength(ByteBuffer.wrap(encodedBytes));
             //logger.info("encodedBytesLengths size= {}", encodedBytes.length);
             //logger.info("ValueLengths size= {}", valueLengths.length);
