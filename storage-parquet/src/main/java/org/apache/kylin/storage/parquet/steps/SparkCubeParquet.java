@@ -216,11 +216,11 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("TransferToGroupRDD: level{}", level);
 
-        //JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
+        JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
 
-        //groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
-        JavaPairRDD<Void, Group> tempRDD = repartitionedRDD.mapToPair(new TempRDDFunction());
-        tempRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+        groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+        //JavaPairRDD<Void, Group> tempRDD = repartitionedRDD.mapToPair(new TempRDDFunction());
+        //tempRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
     }
 
     static class CuboidPartitioner extends Partitioner {
@@ -376,6 +376,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         }
     }
 
+
     static class GenerateGroupRDDFunction implements PairFunction<Tuple2<Text, Text>, Void, Group> {
         private volatile transient boolean initialized = false;
         private String cubeName;
@@ -424,36 +425,40 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
                 }
             }
 
-            long cuboid = decoder.decode(tuple._1.getBytes());
-            List<String> values = decoder.getValues();
-            List<TblColRef> columns = decoder.getColumns();
-
+//            long cuboid = decoder.decode(tuple._1.getBytes());
+//            List<String> values = decoder.getValues();
+//            List<TblColRef> columns = decoder.getColumns();
+//
+//            Group group = factory.newGroup();
+//
+//            // for check
+//            group.append("cuboidId", cuboid);
+//
+//            for (int i = 0; i < columns.size(); i++) {
+//                TblColRef column = columns.get(i);
+//                parseColValue(group, column, values.get(i));
+//            }
+//
+//            count ++;
+//
+//            int meaByteLen = tuple._2().getBytes().length;
+//            byte[] encodedBytes = new byte[meaByteLen];
+//            System.arraycopy(tuple._2().getBytes(), 0, encodedBytes, 0, meaByteLen);
+//            int[] valueLengths = measureCodec.getCodec().getPeekLength(ByteBuffer.wrap(encodedBytes));
+//            //logger.info("encodedBytesLengths size= {}", encodedBytes.length);
+//            //logger.info("ValueLengths size= {}", valueLengths.length);
+//
+//            int valueOffset = 0;
+//            for (int i = 0; i < valueLengths.length; ++i) {
+//                System.out.print("valueLeghth = " + valueLengths[i]);
+//                MeasureDesc measureDesc = measureDescs.get(i);
+//                parseMeaValue(group, measureDesc, encodedBytes, valueOffset, valueLengths[i]);
+//                valueOffset += valueLengths[i];
+//            }
+//
+//            return new Tuple2<>(null, group);
             Group group = factory.newGroup();
-
-            // for check
-            group.append("cuboidId", cuboid);
-
-            for (int i = 0; i < columns.size(); i++) {
-                TblColRef column = columns.get(i);
-                parseColValue(group, column, values.get(i));
-            }
-
-            count ++;
-
-            int meaByteLen = tuple._2().getBytes().length;
-            byte[] encodedBytes = new byte[meaByteLen];
-            System.arraycopy(tuple._2().getBytes(), 0, encodedBytes, 0, meaByteLen);
-            int[] valueLengths = measureCodec.getCodec().getPeekLength(ByteBuffer.wrap(encodedBytes));
-            //logger.info("encodedBytesLengths size= {}", encodedBytes.length);
-            //logger.info("ValueLengths size= {}", valueLengths.length);
-
-            int valueOffset = 0;
-            for (int i = 0; i < valueLengths.length; ++i) {
-                System.out.print("valueLeghth = " + valueLengths[i]);
-                MeasureDesc measureDesc = measureDescs.get(i);
-                parseMeaValue(group, measureDesc, encodedBytes, valueOffset, valueLengths[i]);
-                valueOffset += valueLengths[i];
-            }
+            group.append("test", Binary.fromConstantByteArray(tuple._2().getBytes(), 0, tuple._2().getLength()));
 
             return new Tuple2<>(null, group);
         }
