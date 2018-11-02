@@ -205,7 +205,6 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
         JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
-        //JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.partitionNum);
 
         String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(hdfsBaseLocation, level);
 
@@ -217,9 +216,11 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("TransferToGroupRDD: level{}", level);
 
-        JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
+        //JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
 
-        groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+        //groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+        JavaPairRDD<Void, Group> tempRDD = repartitionedRDD.mapToPair(new TempRDDFunction());
+        tempRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
     }
 
     static class CuboidPartitioner extends Partitioner {
@@ -448,6 +449,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
             int valueOffset = 0;
             for (int i = 0; i < valueLengths.length; ++i) {
+                System.out.print("valueLeghth = " + valueLengths[i]);
                 MeasureDesc measureDesc = measureDescs.get(i);
                 parseMeaValue(group, measureDesc, encodedBytes, valueOffset, valueLengths[i]);
                 valueOffset += valueLengths[i];
