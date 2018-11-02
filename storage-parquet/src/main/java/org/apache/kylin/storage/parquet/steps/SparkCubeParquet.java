@@ -458,8 +458,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 //
 //            return new Tuple2<>(null, group);
             Group group = factory.newGroup();
-            group.append("test", Binary.fromConstantByteArray(tuple._2().getBytes(), 0, tuple._2().getLength()));
-
+            group.append(measureDescs.get(1).getName(), Binary.fromConstantByteArray(tuple._2().getBytes(), 0, tuple._2().getLength()));
             return new Tuple2<>(null, group);
         }
 
