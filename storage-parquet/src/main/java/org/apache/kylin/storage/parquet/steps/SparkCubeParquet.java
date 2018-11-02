@@ -239,9 +239,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         @Override
         public int getPartition(Object key) {
             Text textKey = (Text)key;
-            long cuboidId = Bytes.toLong(textKey.getBytes(), RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
-
-            return mapping.getPartitionForCuboidId(cuboidId);
+            return mapping.getPartitionForCuboidId(textKey.getBytes());
         }
     }
 
@@ -305,9 +303,21 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             throw new IllegalArgumentException("No cuboidId for partition id: " + partition);
         }
 
-        public int getPartitionForCuboidId(long cuboidId) {
+        public int getPartitionForCuboidId(byte[] key) {
+            long cuboidId = Bytes.toLong(key, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);
             List<Integer> partitions = cuboidPartitions.get(cuboidId);
-            return partitions.get(random.nextInt(partitions.size()));
+            int partitionKey = mod(key, RowConstants.ROWKEY_COL_DEFAULT_LENGTH, key.length, partitions.size());
+
+            return partitions.get(partitionKey);
+        }
+
+        private int mod(byte[] src, int start, int end, int total) {
+            int sum = Bytes.hashBytes(src, start, end - start);
+            int mod = sum % total;
+            if (mod < 0)
+                mod += total;
+
+            return mod;
         }
 
         public int getPartitionNumForCuboidId(long cuboidId) {
