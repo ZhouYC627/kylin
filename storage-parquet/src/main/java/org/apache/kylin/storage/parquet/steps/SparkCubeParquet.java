@@ -85,10 +85,19 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SQLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
-
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.Encoder;
+import org.apache.spark.sql.Encoders;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -167,6 +176,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
             final Job job = Job.getInstance(sConf.get());
             SparkUtil.setHadoopConfForCuboid(job, cubeSegment, metaUrl);
+            SQLContext sqlContext = new SQLContext(sc.sc());
+
 
             // Read from cuboid and save to parquet
             for (int level = 0; level <= totalLevels; level++) {
@@ -174,7 +185,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
                 logger.info("Read layer: {} from {}", level, cuboidPath);
                 allRDDs[level] = SparkUtil.parseInputPath(cuboidPath, fs, sc, Text.class, Text.class);
                 logger.info("SaveToParquet... Level:{}", level);
-                saveToParquet(allRDDs[level], metaUrl, cubeName, cubeSegment, outputPath, level, job, envConfig);
+                saveToParquet(allRDDs[level], metaUrl, cubeName, cubeSegment, outputPath, level, job, envConfig, sqlContext);
             }
 
             logger.info("HDFS: Number of bytes written={}", jobListener.metrics.getBytesWritten());
@@ -188,7 +199,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
     }
 
-    protected void saveToParquet(JavaPairRDD<Text, Text> rdd, String metaUrl, String cubeName, CubeSegment cubeSeg, String hdfsBaseLocation, int level, Job job, KylinConfig kylinConfig) throws Exception {
+    protected void saveToParquet(JavaPairRDD<Text, Text> rdd, String metaUrl, String cubeName, CubeSegment cubeSeg, String hdfsBaseLocation, int level, Job job, KylinConfig kylinConfig, SQLContext sqlContext) throws Exception {
         final IDimensionEncodingMap dimEncMap = cubeSeg.getDimensionEncodingMap();
 
         Cuboid baseCuboid = Cuboid.getBaseCuboid(cubeSeg.getCubeDesc());
@@ -216,10 +227,15 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("TransferToGroupRDD: level{}", level);
 
-        //JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
+        JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
 
         //groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
-        repartitionedRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+        //repartitionedRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
+
+        System.out.println("GroupRDDCount" + groupRDD.count());
+        //Dataset<Group> df = sqlContext.createDataFrame(groupRDD, schema);
+        //df.write().parquet("");
+
 
     }
 
