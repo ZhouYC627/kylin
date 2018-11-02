@@ -208,7 +208,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
         //JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.getNumPartitions())
+        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.getNumPartitions());
 
 //        String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(outputPath, level);
 
