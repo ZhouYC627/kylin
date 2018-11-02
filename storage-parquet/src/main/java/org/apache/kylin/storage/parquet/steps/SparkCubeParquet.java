@@ -172,7 +172,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
 
             // Read from cuboid and save to parquet
-            for (int level = 0; level <= totalLevels; level++) {
+            for (int level = 2; level <= totalLevels; level++) {
                 String cuboidPath = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(inputPath, level);
                 logger.info("Read layer: {} from {}", level, cuboidPath);
                 allRDDs[level] = SparkUtil.parseInputPath(cuboidPath, fs, sc, Text.class, Text.class);
@@ -191,7 +191,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
     }
 
-    protected void saveToParquet(JavaPairRDD<Text, Text> rdd, String metaUrl, String cubeName, CubeSegment cubeSeg, String hdfsBaseLocation, int level, Job job, KylinConfig kylinConfig, SQLContext sqlContext) throws Exception {
+    protected void saveToParquet(JavaPairRDD<Text, Text> rdd, String metaUrl, String cubeName, CubeSegment cubeSeg, String outputPath, int level, Job job, KylinConfig kylinConfig, SQLContext sqlContext) throws Exception {
         final IDimensionEncodingMap dimEncMap = cubeSeg.getDimensionEncodingMap();
 
         Cuboid baseCuboid = Cuboid.getBaseCuboid(cubeSeg.getCubeDesc());
@@ -207,24 +207,25 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
+        //JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
+        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.getNumPartitions())
 
-        String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(hdfsBaseLocation, level);
+//        String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(outputPath, level);
 
-        job.setOutputFormatClass(CustomParquetOutputFormat.class);
-        GroupWriteSupport.setSchema(schema, job.getConfiguration());
-        CustomParquetOutputFormat.setOutputPath(job, new Path(output));
-        CustomParquetOutputFormat.setWriteSupportClass(job, GroupWriteSupport.class);
-        CustomParquetOutputFormat.setCuboidToPartitionMapping(job, cuboidToPartitionMapping);
+//        job.setOutputFormatClass(CustomParquetOutputFormat.class);
+//        GroupWriteSupport.setSchema(schema, job.getConfiguration());
+//        CustomParquetOutputFormat.setOutputPath(job, new Path(output));
+//        CustomParquetOutputFormat.setWriteSupportClass(job, GroupWriteSupport.class);
+//        CustomParquetOutputFormat.setCuboidToPartitionMapping(job, cuboidToPartitionMapping);
 
         logger.info("TransferToGroupRDD: level{}", level);
 
-        JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
+        //JavaPairRDD<Void, Group> groupRDD = repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap));
 
         //groupRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
         //repartitionedRDD.saveAsNewAPIHadoopDataset(job.getConfiguration());
 
-        System.out.println("GroupRDDCount" + groupRDD.count());
+        System.out.println("GroupRDDCount" + repartitionedRDD.count());
         //Dataset<Group> df = sqlContext.createDataFrame(groupRDD, schema);
         //df.write().parquet("");
 

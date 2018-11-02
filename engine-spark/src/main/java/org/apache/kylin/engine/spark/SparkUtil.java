@@ -97,9 +97,10 @@ public class SparkUtil {
         }
 
         if (!hasDir) {
+            System.out.println("Has no Dir: " + inputHDFSPath.toString());
             return sc.sequenceFile(inputHDFSPath.toString(), keyClass, valueClass);
         }
-
+        System.out.println("Has Dir: " + StringUtil.join(inputFolders, ","));
         return sc.sequenceFile(StringUtil.join(inputFolders, ","), keyClass, valueClass);
     }
 
