@@ -103,6 +103,22 @@ public class GTRecord implements Comparable<GTRecord> {
         int pos = buf.position();
         for (int i = 0; i < selectedCols.trueBitCount(); i++) {
             int c = selectedCols.trueBitAt(i);
+            info.codeSystem.encodeColumnValue(c, values[i], buf);
+            int newPos = buf.position();
+            cols[c].reset(buf.array(), buf.arrayOffset() + pos, newPos - pos);
+            pos = newPos;
+        }
+        return this;
+    }
+
+    /** set record to the codes of specified values, reuse given space to hold the codes */
+    public GTRecord setValues4Parquet(ImmutableBitSet selectedCols, ByteArray space, Object... values) {
+        assert selectedCols.cardinality() == values.length;
+
+        ByteBuffer buf = space.asBuffer();
+        int pos = buf.position();
+        for (int i = 0; i < selectedCols.trueBitCount(); i++) {
+            int c = selectedCols.trueBitAt(i);
 
             DataTypeSerializer serializer = info.codeSystem.getSerializer(c);
             if (serializer instanceof DictionaryDimEnc.DictionarySerializer) {
