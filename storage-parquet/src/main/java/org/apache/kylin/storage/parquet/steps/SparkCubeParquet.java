@@ -140,13 +140,13 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         final String outputPath = optionsHelper.getOptionValue(OPTION_OUTPUT_PATH);
         final String counterPath = optionsHelper.getOptionValue(OPTION_COUNTER_PATH);
 
-        Class[] kryoClassArray = new Class[] { Class.forName("scala.reflect.ClassTag$$anon$1"), Text.class, Group.class};
+//        Class[] kryoClassArray = new Class[] { Class.forName("scala.reflect.ClassTag$$anon$1"), Text.class, Group.class};
 
         SparkConf conf = new SparkConf().setAppName("Converting Parquet File for: " + cubeName + " segment " + segmentId);
         //serialization conf
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
-        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
+//        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+//        conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
+//        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
 
 
         KylinSparkJobListener jobListener = new KylinSparkJobListener();
@@ -154,9 +154,9 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             sc.sc().addSparkListener(jobListener);
 
             HadoopUtil.deletePath(sc.hadoopConfiguration(), new Path(outputPath));
-            final SerializableConfiguration sConf = new SerializableConfiguration(sc.hadoopConfiguration());
+            //final SerializableConfiguration sConf = new SerializableConfiguration(sc.hadoopConfiguration());
 
-            final KylinConfig envConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(sConf, metaUrl);
+            final KylinConfig envConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
 
             final CubeInstance cubeInstance = CubeManager.getInstance(envConfig).getCube(cubeName);
             final CubeSegment cubeSegment = cubeInstance.getSegmentById(segmentId);
@@ -166,8 +166,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             final int totalLevels = cubeSegment.getCuboidScheduler().getBuildLevel();
 //            JavaPairRDD<Text, Text>[] allRDDs = new JavaPairRDD[totalLevels + 1];
 
-            final Job job = Job.getInstance(sConf.get());
-            SparkUtil.setHadoopConfForCuboid(job, cubeSegment, metaUrl);
+            final Job job = Job.getInstance();
+            //SparkUtil.setHadoopConfForCuboid(job, cubeSegment, metaUrl);
 
             HadoopUtil.deletePath(sc.hadoopConfiguration(), new Path(outputPath));
             logger.info("Input path: {}", inputPath);
@@ -204,7 +204,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
+        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.getNumPartitions());
+//        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
 
 //        String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(outputPath, level);
 
@@ -333,7 +334,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         private int estimateCuboidPartitionNum(long cuboidId, CubeStatsReader cubeStatsReader, KylinConfig kylinConfig) {
             double cuboidSize = cubeStatsReader.estimateCuboidSize(cuboidId);
             float rddCut = kylinConfig.getSparkRDDPartitionCutMB();
-            int partition = (int) (cuboidSize / (rddCut * 20));
+            int partition = (int) (cuboidSize / (rddCut * 10));
             partition = Math.max(kylinConfig.getSparkMinPartition(), partition);
             partition = Math.min(kylinConfig.getSparkMaxPartition(), partition);
             logger.info("cuboid:{}, est_size:{}, partitions:{}", cuboidId, cuboidSize, partition);
