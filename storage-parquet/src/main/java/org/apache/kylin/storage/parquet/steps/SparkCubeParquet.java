@@ -173,8 +173,7 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             logger.info("Output path: {}", outputPath);
 
             JavaPairRDD<Text, Text> inputRDD = SparkUtil.parseInputPath(inputPath, fs, sc, Text.class, Text.class);
-            inputRDD.count();
-            //saveToParquet(inputRDD, metaUrl, cubeName, cubeSegment, outputPath, job, envConfig);
+            saveToParquet(inputRDD, metaUrl, cubeName, cubeSegment, outputPath, job, envConfig);
 
             logger.info("HDFS: Number of bytes written={}", jobListener.metrics.getBytesWritten());
 
@@ -203,7 +202,6 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 
         logger.info("CuboidToPartitionMapping:\n {}", cuboidToPartitionMapping.toString());
 
-        JavaPairRDD<Text, Text> repartitionedRDD = rdd.repartition(cuboidToPartitionMapping.getNumPartitions());
 //        JavaPairRDD<Text, Text> repartitionedRDD = rdd.partitionBy(new CuboidPartitioner(cuboidToPartitionMapping, cubeSeg.isEnableSharding()));
 
 //        String output = BatchCubingJobBuilder2.getCuboidOutputPathsByLevel(outputPath, level);
@@ -215,7 +213,8 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         CustomParquetOutputFormat.setCuboidToPartitionMapping(job, cuboidToPartitionMapping);
 
         logger.info("TransferToGroupRDD");
-        repartitionedRDD.mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap))
+        rdd.repartition(cuboidToPartitionMapping.getNumPartitions())
+                .mapToPair(new GenerateGroupRDDFunction(cubeName, cubeSeg.getUuid(), metaUrl, new SerializableConfiguration(job.getConfiguration()), colTypeMap, meaTypeMap))
                 .saveAsNewAPIHadoopDataset(job.getConfiguration());
 
 
