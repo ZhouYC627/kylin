@@ -140,11 +140,13 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         final String outputPath = optionsHelper.getOptionValue(OPTION_OUTPUT_PATH);
         final String counterPath = optionsHelper.getOptionValue(OPTION_COUNTER_PATH);
 
+        Class[] kryoClassArray = new Class[] { Class.forName("scala.reflect.ClassTag$$anon$1"), Text.class, Group.class};
 
         SparkConf conf = new SparkConf().setAppName("Converting Parquet File for: " + cubeName + " segment " + segmentId);
         //serialization conf
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
+        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
 
 
         KylinSparkJobListener jobListener = new KylinSparkJobListener();
