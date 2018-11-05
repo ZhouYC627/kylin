@@ -140,13 +140,13 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
         final String outputPath = optionsHelper.getOptionValue(OPTION_OUTPUT_PATH);
         final String counterPath = optionsHelper.getOptionValue(OPTION_COUNTER_PATH);
 
-//        Class[] kryoClassArray = new Class[] { Class.forName("scala.reflect.ClassTag$$anon$1"), Text.class, Group.class};
+        Class[] kryoClassArray = new Class[] { Class.forName("scala.reflect.ClassTag$$anon$1"), Text.class, Group.class};
 
         SparkConf conf = new SparkConf().setAppName("Converting Parquet File for: " + cubeName + " segment " + segmentId);
         //serialization conf
-//        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-//        conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
-//        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
+        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
+        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
 
 
         KylinSparkJobListener jobListener = new KylinSparkJobListener();
@@ -154,9 +154,9 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
             sc.sc().addSparkListener(jobListener);
 
             HadoopUtil.deletePath(sc.hadoopConfiguration(), new Path(outputPath));
-            //final SerializableConfiguration sConf = new SerializableConfiguration(sc.hadoopConfiguration());
+            final SerializableConfiguration sConf = new SerializableConfiguration(sc.hadoopConfiguration());
 
-            final KylinConfig envConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
+            final KylinConfig envConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(sConf, metaUrl);
 
             final CubeInstance cubeInstance = CubeManager.getInstance(envConfig).getCube(cubeName);
             final CubeSegment cubeSegment = cubeInstance.getSegmentById(segmentId);
@@ -167,15 +167,14 @@ public class SparkCubeParquet extends AbstractApplication implements Serializabl
 //            JavaPairRDD<Text, Text>[] allRDDs = new JavaPairRDD[totalLevels + 1];
 
             final Job job = Job.getInstance();
-            //SparkUtil.setHadoopConfForCuboid(job, cubeSegment, metaUrl);
 
             HadoopUtil.deletePath(sc.hadoopConfiguration(), new Path(outputPath));
             logger.info("Input path: {}", inputPath);
             logger.info("Output path: {}", outputPath);
 
             JavaPairRDD<Text, Text> inputRDD = SparkUtil.parseInputPath(inputPath, fs, sc, Text.class, Text.class);
-
-            saveToParquet(inputRDD, metaUrl, cubeName, cubeSegment, outputPath, job, envConfig);
+            inputRDD.count();
+            //saveToParquet(inputRDD, metaUrl, cubeName, cubeSegment, outputPath, job, envConfig);
 
             logger.info("HDFS: Number of bytes written={}", jobListener.metrics.getBytesWritten());
 
