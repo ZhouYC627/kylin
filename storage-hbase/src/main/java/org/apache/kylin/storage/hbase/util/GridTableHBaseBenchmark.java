@@ -56,6 +56,7 @@ public class GridTableHBaseBenchmark {
     private static final double DFT_HIT_RATIO = 0.3;
     private static final double DFT_INDEX_RATIO = 0.1;
     private static final int ROUND = 3;
+    private static final Random rand = new Random();
     protected static final Logger logger = LoggerFactory.getLogger(GridTableHBaseBenchmark.class);
 
     public static void main(String[] args) throws IOException {
@@ -172,19 +173,18 @@ public class GridTableHBaseBenchmark {
 
             int i = 0;
             while (i < N_ROWS) {
-                int start;
-                int end;
-                for (start = i; start < N_ROWS; start++) {
-                    if (hits[start])
-                        break;
-                }
-                for (end = start + 1; end < N_ROWS; end++) {
-                    boolean isEnd = true;
-                    for (int j = 0; j < jumpThreshold && end + j < N_ROWS; j++)
-                        if (hits[end + j])
-                            isEnd = false;
-                    if (isEnd)
-                        break;
+                // find the first hit
+                int start = i;
+                while (start + 1 < N_ROWS && !hits[start]) start++;
+
+                // find the last hit within jumpThreshold
+                int end = start + 1;
+                int jump = end + 1;
+                while (jump < N_ROWS && (end + jumpThreshold > jump)) {
+                    if (hits[jump]) {
+                        end = jump;
+                    }
+                    jump++;
                 }
 
                 if (start < N_ROWS) {
@@ -258,7 +258,6 @@ public class GridTableHBaseBenchmark {
 
     private static byte[] randomBytes() {
         byte[] bytes = new byte[CELL_SIZE];
-        Random rand = new Random();
         rand.nextBytes(bytes);
         return bytes;
     }
