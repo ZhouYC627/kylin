@@ -18,39 +18,22 @@
 
 package org.apache.kylin.common.persistence;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.File;
+import java.io.IOException;
 
-public class BrokenEntity extends RootPersistentEntity {
+import org.junit.Assert;
+import org.junit.Test;
 
-    protected static final byte[] MAGIC = new byte[]{'B', 'R', 'O', 'K', 'E', 'N'};
+public class AutoDeleteDirectoryTest {
 
-    @JsonProperty("resPath")
-    private String resPath;
-
-    @JsonProperty("errorMsg")
-    private String errorMsg;
-
-    public BrokenEntity() {
-    }
-
-    public BrokenEntity(String resPath, String errorMsg) {
-        this.resPath = resPath;
-        this.errorMsg = errorMsg;
-    }
-
-    public String getResPath() {
-        return resPath;
-    }
-
-    public void setResPath(String resPath) {
-        this.resPath = resPath;
-    }
-
-    public String getErrorMsg() {
-        return errorMsg;
-    }
-
-    public void setErrorMsg(String errorMsg) {
-        this.errorMsg = errorMsg;
+    @Test
+    public void testBasic() throws IOException {
+        File tempFile = null;
+        try (AutoDeleteDirectory autoTempFile = new AutoDeleteDirectory("test", "")) {
+            Assert.assertTrue(autoTempFile.getFile().isDirectory());
+            Assert.assertEquals(0, autoTempFile.getFile().listFiles().length);
+            tempFile = autoTempFile.getFile();
+        }
+        Assert.assertTrue(!tempFile.exists());
     }
 }

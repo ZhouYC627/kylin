@@ -558,9 +558,8 @@ public class QueryService extends BasicService {
                 logger.debug("Return fake response, is exception? " + fakeResponse.getIsException());
                 return fakeResponse;
             }
-
             String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
-                    sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema());
+                    sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema(), Constant.FakeCatalogName);
             if (!correctedSql.equals(sqlRequest.getSql())) {
                 logger.info("The corrected query: " + correctedSql);
 
@@ -588,7 +587,7 @@ public class QueryService extends BasicService {
                 long prjLastModifyTime = getProjectManager().getProject(sqlRequest.getProject()).getLastModified();
                 preparedContextKey = new PreparedContextKey(sqlRequest.getProject(), prjLastModifyTime, correctedSql);
                 PrepareSqlRequest prepareSqlRequest = (PrepareSqlRequest) sqlRequest;
-                if (prepareSqlRequest.isEnableStatementCache()) {
+                if (getConfig().isQueryPreparedStatementCacheEnable() && prepareSqlRequest.isEnableStatementCache()) {
                     try {
                         preparedContext = preparedContextPool.borrowObject(preparedContextKey);
                         borrowPrepareContext = true;
@@ -620,6 +619,9 @@ public class QueryService extends BasicService {
 
     private void resetRealizationInContext(OLAPContext olapContext) {
         IRealization realization = olapContext.realization;
+        if (realization == null) {
+            return;
+        }
         KylinConfig config = getConfig();
         HybridInstance hybridInstance = HybridManager.getInstance(config).getHybridInstance(realization.getName());
         if (hybridInstance != null) {
