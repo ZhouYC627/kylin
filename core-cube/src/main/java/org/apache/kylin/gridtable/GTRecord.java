@@ -28,6 +28,7 @@ import org.apache.kylin.measure.dim.DimCountDistincSerializer;
 import org.apache.kylin.measure.extendedcolumn.ExtendedColumnSerializer;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.percentile.PercentileSerializer;
+import org.apache.kylin.measure.raw.RawSerializer;
 import org.apache.kylin.measure.topn.TopNCounterSerializer;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
@@ -112,6 +113,7 @@ public class GTRecord implements Comparable<GTRecord> {
     }
 
     /** set record to the codes of specified values, reuse given space to hold the codes */
+
     public GTRecord setValues4Parquet(ImmutableBitSet selectedCols, ByteArray space, Object... values) {
         assert selectedCols.cardinality() == values.length;
 
@@ -132,7 +134,8 @@ public class GTRecord implements Comparable<GTRecord> {
                     serializer instanceof BitmapSerializer ||
                     serializer instanceof ExtendedColumnSerializer ||
                     serializer instanceof PercentileSerializer ||
-                    serializer instanceof DimCountDistincSerializer) {
+                    serializer instanceof DimCountDistincSerializer ||
+                    serializer instanceof RawSerializer) {
                 cols[c].reset((byte[]) values[i], 0, ((byte[]) values[i]).length);
             } else {
                 info.codeSystem.encodeColumnValue(c, values[i], buf);
