@@ -199,27 +199,7 @@ public class CubeScanRangePlanner extends ScanRangePlannerBase {
         }
         return scanRequest;
     }
-
-    private Object toStringValue(CompareTupleFilter filter, DataTypeSerializer serializer, ByteBuffer buffer) {
-        Object firstValue = filter.getFirstValue();
-
-        if (serializer instanceof DictionaryDimEnc.DictionarySerializer) {
-            if (firstValue instanceof String && "".equals(firstValue)) {
-                return 0;
-            }
-            DictionaryDimEnc.DictionarySerializer dictionarySerializer = (DictionaryDimEnc.DictionarySerializer) serializer;
-            buffer.clear();
-            dictionarySerializer.serialize(firstValue, buffer);
-            int id = BytesUtil.readUnsigned(buffer.array(), 0, buffer.position());
-            return id;
-        }
-
-        if (filter.getColumn().getType().isStringFamily()) {
-            return "'" + firstValue + "'";
-        }
-        return firstValue;
-    }
-
+   
     /**
      * Overwrite this method to provide smarter storage visit plans
      * @return

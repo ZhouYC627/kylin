@@ -113,7 +113,8 @@ public class GTRecord implements Comparable<GTRecord> {
     }
 
     /** set record to the codes of specified values, reuse given space to hold the codes */
-    public GTRecord setValuesParquet(ImmutableBitSet selectedCols, ByteArray space, Object... values) {
+
+    public GTRecord setValues4Parquet(ImmutableBitSet selectedCols, ByteArray space, Object... values) {
         assert selectedCols.cardinality() == values.length;
 
         ByteBuffer buf = space.asBuffer();

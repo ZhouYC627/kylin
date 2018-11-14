@@ -37,6 +37,7 @@
         <fastBuildMode />
         <buildCubeUsingProvidedData />
         <engineType />
+        <storageEngine />
     </properties>
 
     <!-- Dependencies. -->
@@ -478,7 +479,6 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
 </project>
