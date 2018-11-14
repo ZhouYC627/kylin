@@ -81,7 +81,7 @@ public class RowKeyDecoder {
 
         for (int i = 0; i < this.cuboid.getColumns().size(); i++) {
             TblColRef col = this.cuboid.getColumns().get(i);
-            collectValue(col, splits[offset].array(), splits[offset].offset(), splits[offset].length(), true);
+            collectValue(col, splits[offset].array(), splits[offset].offset(), splits[offset].length());
             offset++;
         }
 
