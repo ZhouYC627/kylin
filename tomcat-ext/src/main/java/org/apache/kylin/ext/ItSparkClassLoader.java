@@ -18,100 +18,53 @@
 
 package org.apache.kylin.ext;
 
-import org.apache.commons.lang.StringUtils;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.HashSet;
 import java.util.Set;
 
 import static org.apache.kylin.ext.ClassLoaderUtils.findFile;
 
-public class SparkClassLoader extends URLClassLoader {
-    //preempt these classes from parent
-    private static String[] SPARK_CL_PREEMPT_CLASSES = new String[] { "org.apache.spark", "scala.",
-            "org.spark_project" };
+public class ItSparkClassLoader extends URLClassLoader {
+    private static final String[] SPARK_CL_PREEMPT_CLASSES = new String[] { "org.apache.spark", "scala.",
+            "org.spark_project"
+            //            "javax.ws.rs.core.Application",
+            //            "javax.ws.rs.core.UriBuilder", "org.glassfish.jersey", "javax.ws.rs.ext"
+            //user javax.ws.rs.api 2.01  not jersey-core-1.9.jar
+    };
+    private static final String[] SPARK_CL_PREEMPT_FILES = new String[] { "spark-version-info.properties",
+            "HiveClientImpl", "org/apache/spark" };
 
-    //preempt these files from parent
-    private static String[] SPARK_CL_PREEMPT_FILES = new String[] { "spark-version-info.properties", "HiveClientImpl",
-            "org/apache/spark" };
+    private static final String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "javax.ws.rs", "org.apache.hadoop.hive" };
 
-    //when loading class (indirectly used by SPARK_CL_PREEMPT_CLASSES), some of them should NOT use parent's first
-    private static String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "javax.ws.rs", "org.apache.hadoop.hive" };
-
-    //when loading class (indirectly used by SPARK_CL_PREEMPT_CLASSES), some of them should use parent's first
-    private static String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
+    private static final String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
             //            // Java standard library:
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
-            "org.apache.commons.logging", "org.apache.log4j", "org.slf4j", "org.apache.hadoop",
+            "org.apache.commons.logging", "org.apache.log4j", "com.hadoop", "org.slf4j",
             // Hadoop/HBase/ZK:
-            "org.apache.kylin", "com.intellij", "org.apache.calcite" };
-
-    private static final Set<String> classNotFoundCache = new HashSet<>();
-    private static Logger logger = LoggerFactory.getLogger(SparkClassLoader.class);
-
-    static {
-        String sparkclassloaderSparkClPreemptClasses = System.getenv("SPARKCLASSLOADER_SPARK_CL_PREEMPT_CLASSES");
-        if (!StringUtils.isEmpty(sparkclassloaderSparkClPreemptClasses)) {
-            SPARK_CL_PREEMPT_CLASSES = StringUtils.split(sparkclassloaderSparkClPreemptClasses, ",");
-        }
-
-        String sparkclassloaderSparkClPreemptFiles = System.getenv("SPARKCLASSLOADER_SPARK_CL_PREEMPT_FILES");
-        if (!StringUtils.isEmpty(sparkclassloaderSparkClPreemptFiles)) {
-            SPARK_CL_PREEMPT_FILES = StringUtils.split(sparkclassloaderSparkClPreemptFiles, ",");
-        }
-
-        String sparkclassloaderThisClPrecedentClasses = System.getenv("SPARKCLASSLOADER_THIS_CL_PRECEDENT_CLASSES");
-        if (!StringUtils.isEmpty(sparkclassloaderThisClPrecedentClasses)) {
-            THIS_CL_PRECEDENT_CLASSES = StringUtils.split(sparkclassloaderThisClPrecedentClasses, ",");
-        }
-
-        String sparkclassloaderParentClPrecedentClasses = System
-                .getenv("SPARKCLASSLOADER_PARENT_CL_PRECEDENT_CLASSES");
-        if (!StringUtils.isEmpty(sparkclassloaderParentClPrecedentClasses)) {
-            PARENT_CL_PRECEDENT_CLASSES = StringUtils.split(sparkclassloaderParentClPrecedentClasses, ",");
-        }
-
-        try {
-            final Method registerParallel = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                public Object run() {
-                    registerParallel.setAccessible(true);
-                    return null;
-                }
-            });
-            Boolean result = (Boolean) registerParallel.invoke(null);
-            if (!result) {
-                logger.warn("registrationFailed");
-            }
-        } catch (Exception ignore) {
-
-        }
-    }
+            "org.apache.hadoop", "org.apache.zookeeper", "org.apache.kylin", "com.intellij",
+            "org.apache.calcite", "org.roaringbitmap", "org.apache.parquet" };
+    private static final Set<String> classNotFoundCache = Sets.newHashSet();
+    private static Logger logger = LoggerFactory.getLogger(ItSparkClassLoader.class);
 
     /**
      * Creates a DynamicClassLoader that can load classes dynamically
      * from jar files under a specific folder.
-     *
+     *       CubeControllerTest
      * @param parent the parent ClassLoader to set.
      */
-    protected SparkClassLoader(ClassLoader parent) throws IOException {
+    protected ItSparkClassLoader(ClassLoader parent) throws IOException {
         super(new URL[] {}, parent);
         init();
     }
 
-    @SuppressWarnings("checkstyle:LocalVariableName")
     public void init() throws MalformedURLException {
         String spark_home = System.getenv("SPARK_HOME");
         if (spark_home == null) {
@@ -126,35 +79,39 @@ public class SparkClassLoader extends URLClassLoader {
         for (File jar : jars) {
             addURL(jar.toURI().toURL());
         }
-        if (System.getenv("KYLIN_HOME") != null) {
-            // for prod
-            String kylin_home = System.getenv("KYLIN_HOME");
-            File sparkJar = findFile(kylin_home + "/lib", "kylin-udf-.*.jar");
-            if (sparkJar != null) {
-                logger.info("Add kylin UDF jar to spark classloader : " + sparkJar.getName());
-                addURL(sparkJar.toURI().toURL());
-            } else {
-                logger.warn("Can not found kylin UDF jar, please set KYLIN_HOME and make sure the kylin-udf-*.jar exists in $KYLIN_HOME/lib");
-            }
-        } else if (Files.exists(Paths.get("../udf/target/classes"))) {
-            //  for debugtomcat
-            logger.info("Add kylin UDF classes to spark classloader");
-            addURL(new File("../udf/target/classes").toURI().toURL());
-        }
+        File sparkJar = findFile("../storage-parquet/target", "kylin-storage-parquet-.*-SNAPSHOT-spark.jar");
 
+        try {
+            // sparder and query module has org.apache.spark class ,if not add,
+            // that will be load by system classloader
+            // (find class api will be find the parent classloader first,
+            // so ,parent classloader can not load it ,spark class will not found)
+            // why SparkClassLoader is unnecessary?
+            // DebugTomcatClassLoader and TomcatClassLoader  find class api will be find itself first
+            // so, parent classloader can load it , spark class will be found
+            addURL(new File("../engine-spark/target/classes").toURI().toURL());
+            addURL(new File("../engine-spark/target/test-classes").toURI().toURL());
+            addURL(new File("../storage-parquet/target/classes").toURI().toURL());
+            addURL(new File("../query/target/classes").toURI().toURL());
+            addURL(new File("../query/target/test-classes").toURI().toURL());
+            addURL(new File("../udf/target/classes").toURI().toURL());
+            System.setProperty("kylin.query.parquet-additional-jars", sparkJar.getCanonicalPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-
         if (needToUseGlobal(name)) {
-            logger.debug("delegate " + name + " directly to parent");
-            return super.loadClass(name, resolve);
+            logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
+            try {
+                return getParent().loadClass(name);
+            } catch (ClassNotFoundException e) {
+                return super.findClass(name);
+            }
         }
-        return doLoadclass(name);
-    }
 
-    private Class<?> doLoadclass(String name) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             // Check whether the class has already been loaded:
             Class<?> clasz = findLoadedClass(name);
@@ -173,8 +130,6 @@ public class SparkClassLoader extends URLClassLoader {
                     // Class not found using this ClassLoader, so delegate to parent
                     logger.debug("Class " + name + " not found - delegating to parent");
                     try {
-                        // sparder and query module has some class start with org.apache.spark,
-                        // We need to use some lib that does not exist in spark/jars
                         clasz = getParent().loadClass(name);
                     } catch (ClassNotFoundException e2) {
                         // Class not found in this ClassLoader or in the parent ClassLoader
@@ -207,10 +162,6 @@ public class SparkClassLoader extends URLClassLoader {
     }
 
     private boolean needToUseGlobal(String name) {
-        if (name.startsWith("org.apache.spark.sql.execution.datasources.sparder.batch.SparderBatchFileFormat")) {
-            return true;
-        }
-
         return !isThisCLPrecedent(name) && !classNeedPreempt(name) && isParentCLPrecedent(name);
     }
 
@@ -227,6 +178,7 @@ public class SparkClassLoader extends URLClassLoader {
     }
 
     boolean fileNeedPreempt(String name) {
+
         for (String exemptPrefix : SPARK_CL_PREEMPT_FILES) {
             if (name.contains(exemptPrefix)) {
                 return true;
