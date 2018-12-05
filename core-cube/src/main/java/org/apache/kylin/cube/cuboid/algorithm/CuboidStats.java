@@ -264,7 +264,7 @@ public class CuboidStats {
             return 1;
         } else {
             //return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : cuboidHitProbabilityMap.get(cuboid);
-            return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : 0.99;
+            return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : 1;
         }
     }
 
