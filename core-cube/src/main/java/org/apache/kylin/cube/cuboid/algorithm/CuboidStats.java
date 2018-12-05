@@ -109,7 +109,7 @@ public class CuboidStats {
         }
     }
 
-    private static final double WEIGHT_FOR_UN_QUERY = 0.2;
+    private static final double WEIGHT_FOR_UN_QUERY = 0.01;
 
     private String key;
     private long baseCuboid;
@@ -263,7 +263,8 @@ public class CuboidStats {
         if (mandatoryCuboidSet.contains(cuboid)) {
             return 1;
         } else {
-            return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : cuboidHitProbabilityMap.get(cuboid);
+            //return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : cuboidHitProbabilityMap.get(cuboid);
+            return cuboidHitProbabilityMap.get(cuboid) == null ? 0 : 0.99;
         }
     }
 
